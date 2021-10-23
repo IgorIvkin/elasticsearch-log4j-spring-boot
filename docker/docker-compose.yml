@@ -1,0 +1,59 @@
+version: '3.5'
+services:
+  elasticsearch:
+    image: elasticsearch:7.14.2
+    volumes:
+      - elasticsearch:/usr/share/elasticsearch/data
+    environment:
+      ES_JAVA_OPTS: "-Xmx512m -Xms256m"
+      ELASTIC_PASSWORD: elastic
+      # Use single node discovery in order to disable production mode and avoid bootstrap checks
+      # see https://www.elastic.co/guide/en/elasticsearch/reference/current/bootstrap-checks.html
+      discovery.type: single-node
+      # X-Pack security needs to be enabled for Elasticsearch to actually authenticate requests
+      xpack.security.enabled: "true"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    restart: unless-stopped
+  
+  # https://www.elastic.co/guide/en/logstash/current/docker-config.html
+  logstash:
+    image: logstash:7.14.2
+    ports:
+      - "5000:5000"
+      - "9600:9600"
+    environment:
+      LS_JAVA_OPTS: "-Xmx512m -Xms256m"
+      ELASTIC_USER: elastic
+      ELASTIC_PASSWORD: elastic
+      XPACK_MONITORING_ELASTICSEARCH_USERNAME: elastic
+      XPACK_MONITORING_ELASTICSEARCH_PASSWORD: elastic
+      XPACK_MONITORING_ELASTICSEARCH_HOSTS: "host.docker.internal:9200"
+      XPACK_MONITORING_ENABLED: "true"
+    volumes:
+      - "./pipeline:/usr/share/logstash/pipeline"
+    restart: unless-stopped
+    depends_on:
+      - elasticsearch
+
+  # https://www.elastic.co/guide/en/kibana/current/docker.html
+  kibana:
+    image: kibana:7.14.2
+    environment:
+      ELASTICSEARCH_USERNAME: elastic
+      ELASTICSEARCH_PASSWORD: elastic
+      # Because Elasticsearch is running in a containerized environment
+      # (setting this to false will result in CPU stats not being correct in the Monitoring UI):
+      XPACK_MONITORING_UI_CONTAINER_ELASTICSEARCH_ENABLED: "true"
+    ports:
+      - "5601:5601"
+    restart: unless-stopped
+    depends_on:
+      - elasticsearch
+      - logstash
+
+
+volumes:
+  elasticsearch:
+  

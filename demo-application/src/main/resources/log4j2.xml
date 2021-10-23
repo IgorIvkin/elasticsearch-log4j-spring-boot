@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+    <Properties>
+        <Property name="application.name">demo-application</Property>
+        <Property name="socket.host">localhost</Property>
+        <Property name="socket.port">5000</Property>
+        <Property name="console.thresholdFilter">DEBUG</Property>
+        <Property name="socket.thresholdFilter">INFO</Property>
+    </Properties>
+    <Appenders>
+        <Console name="CONSOLE" target="SYSTEM_OUT">
+            <ThresholdFilter level="${console.thresholdFilter}"/>
+            <PatternLayout pattern="%d %-5p [%t] %c{10} - %m%n"/>
+        </Console>
+        <Socket name="SOCKET" host="${socket.host}" port="${socket.port}" immediateFlush="true">
+            <ThresholdFilter level="${socket.thresholdFilter}"/>
+            <JsonTemplateLayout eventTemplateUri="classpath:LogstashJsonEventLayoutV1.json">
+                <EventTemplateAdditionalField key="application" value="${application.name}"/>
+            </JsonTemplateLayout>
+        </Socket>
+        <Async name="ASYNC">
+            <AppenderRef ref="CONSOLE"/>
+            <AppenderRef ref="SOCKET"/>
+        </Async>
+    </Appenders>
+
+    <Loggers>
+        <Root level="info">
+            <AppenderRef ref="ASYNC"/>
+        </Root>
+    </Loggers>
+</Configuration>
